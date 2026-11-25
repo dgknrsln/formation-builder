@@ -213,6 +213,7 @@ function normalizeLoadedState(parsed) {
 
 class Store {
   constructor() {
+    this.ephemeral = Boolean(window.location.hash && window.location.hash.startsWith('#t='));
     this.state = createInitialState();
     this.listeners = new Set();
   }
@@ -223,10 +224,12 @@ class Store {
   }
 
   notify() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-    } catch {
-      // Ignore
+    if (!this.ephemeral) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      } catch {
+        // Ignore
+      }
     }
     for (const fn of this.listeners) {
       fn(this.state);
@@ -563,7 +566,15 @@ class Store {
 
     const targetState = payload.current || (Array.isArray(payload.players) ? payload : null);
     if (targetState && Array.isArray(targetState.players) && targetState.players.length >= 5) {
+      this.ephemeral = true;
       this.state = normalizeLoadedState(targetState);
+      try {
+        const shareUrl = this.generateShareUrl();
+        const hash = '#' + shareUrl.split('#')[1];
+        window.history.replaceState(null, '', hash);
+      } catch {
+        // Ignore
+      }
     }
 
     this.notify();
