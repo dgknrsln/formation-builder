@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>FM27 Taktik Tahtası — Diziliş ve Rol Oluşturucu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Üst Kontrol Çubuğu -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-badge">FM27</div>
+        <div class="brand-text">
+          <input type="text" id="tactic-name-input" class="tactic-title-input" value="Ana Takım Taktiği" maxlength="36" aria-label="Taktik Adı" />
+          <span>Diziliş, Atak/Karşılama &amp; Rol Oluşturucu</span>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <!-- Oyuncu Sayısı Seçici -->
+        <div class="control-group">
+          <span class="control-label">Oyuncu Sayısı</span>
+          <div class="pill-group" id="player-count-pills" role="group" aria-label="Oyuncu sayısı"></div>
+        </div>
+
+        <!-- Hazır Diziliş -->
+        <div class="control-group">
+          <label class="control-label" for="preset-select">Hazır Şablon</label>
+          <select id="preset-select" class="select-input"></select>
+        </div>
+
+        <!-- Faz Geçişi (FM27 Signature) -->
+        <div class="control-group">
+          <span class="control-label">Taktik Fazı</span>
+          <div class="phase-segmented" role="group" aria-label="Taktik Fazı">
+            <button type="button" class="phase-btn" data-phase="attack" id="btn-phase-attack">
+              <span class="phase-dot phase-dot--atk"></span>
+              Atak
+            </button>
+            <button type="button" class="phase-btn" data-phase="defense" id="btn-phase-defense">
+              <span class="phase-dot phase-dot--def"></span>
+              Karşılama
+            </button>
+            <button type="button" class="phase-btn" data-phase="setpiece" id="btn-phase-setpiece">
+              <span class="phase-dot phase-dot--sp"></span>
+              Duran Top
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button type="button" class="btn btn-secondary" id="btn-slots" title="Taktik slotlarını kaydet veya yükle">
+          Slotlar
+        </button>
+        <button type="button" class="btn btn-secondary" id="btn-role-guide" title="Tüm rollerin anlamlarını incele">
+          Rol Rehberi
+        </button>
+        <div class="export-dropdown" id="export-dropdown">
+          <button type="button" class="btn btn-secondary" id="btn-export-menu" aria-expanded="false" aria-haspopup="true">
+            Dışa Aktar ▾
+          </button>
+          <div class="export-menu" id="export-menu" hidden>
+            <button type="button" class="export-menu-item" data-export="both-single">
+              <strong>Atak + Karşılama PNG (2 Tekil Dosya)</strong>
+              <span>Her faz için ayrı saha + detaylı rol taktikleri</span>
+            </button>
+            <button type="button" class="export-menu-item" data-export="combined">
+              <strong>Atak + Karşılama PNG (Birleşik)</strong>
+              <span>İki saha yan yana + rol karşılaştırma tablosu</span>
+            </button>
+            <div class="export-menu-divider"></div>
+            <button type="button" class="export-menu-item" data-export="attack">
+              <strong>Sadece Atak PNG</strong>
+              <span>Topa sahipken diziliş ve rol açıklamaları</span>
+            </button>
+            <button type="button" class="export-menu-item" data-export="defense">
+              <strong>Sadece Karşılama PNG</strong>
+              <span>Top rakipteyken diziliş ve rol açıklamaları</span>
+            </button>
+            <div class="export-menu-divider"></div>
+            <button type="button" class="export-menu-item" data-export="selected-player">
+              <strong>Seçili Oyuncu Detaylı Kartı (PNG)</strong>
+              <span>Atakta ve savunmada ne yapacak detaylı kart</span>
+            </button>
+            <button type="button" class="export-menu-item" data-export="all-players">
+              <strong>Herkese Özel Detaylı PNG'ler</strong>
+              <span>Her oyuncu için ayrı Atak &amp; Savunma kartı indirir</span>
+            </button>
+            <div class="export-menu-divider"></div>
+            <button type="button" class="export-menu-item" data-export="share-link">
+              <strong>Paylaşım Linki Kopyala</strong>
+              <span>Taktiği URL olarak kopyalayıp arkadaşınla paylaş</span>
+            </button>
+            <button type="button" class="export-menu-item" data-export="json">
+              <strong>JSON Olarak Kopyala</strong>
+              <span>Ham taktik verisini panoya kopyala</span>
+            </button>
+            <div class="export-menu-divider"></div>
+            <button type="button" class="export-menu-item" data-export="backup-download">
+              <strong>Tam Yedek İndir (.json)</strong>
+              <span>Mevcut taktik + tüm kayıtlı slotları indir</span>
+            </button>
+            <button type="button" class="export-menu-item" data-export="backup-import">
+              <strong>Yedekten Yükle (.json)</strong>
+              <span>İndirdiğin yedeği canlı siteye geri yükle</span>
+            </button>
+          </div>
+        </div>
+        <input type="file" id="backup-file-input" accept=".json,application/json" hidden />
+        <button type="button" class="btn btn-ghost" id="btn-reset" title="Mevcut dizilişi sıfırla">
+          Sıfırla
+        </button>
+      </div>
+    </header>
+
+    <!-- Ana 3 Sütunlu Çalışma Alanı -->
+    <main class="workspace">
+      <!-- Sol Panel: Sekmeli (Kadro & Özet / Takım Talimatları / Analiz & Yedekler) -->
+      <aside class="panel panel-left">
+        <div class="left-tabs" role="tablist">
+          <button type="button" class="left-tab active" data-left-tab="squad">Kadro</button>
+          <button type="button" class="left-tab" data-left-tab="instructions">Talimatlar</button>
+          <button type="button" class="left-tab" data-left-tab="analysis">Analiz &amp; Yedek</button>
+        </div>
+
+        <!-- Sekme 1: Kadro & Özet -->
+        <div class="left-tab-pane" id="pane-squad">
+          <div class="panel-section">
+            <div class="section-header">
+              <h2>Diziliş Özeti</h2>
+              <span class="formation-chip" id="formation-code-badge">4-2-3-1</span>
+            </div>
+            <div class="phase-compare-card" id="phase-compare-card"></div>
+            <div class="duty-summary" id="duty-summary"></div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-header">
+              <h2>Faz Senkronizasyonu</h2>
+            </div>
+            <div class="sync-buttons">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-copy-atk-to-def">
+                Atak → Karşılama'ya Kopyala
+              </button>
+              <button type="button" class="btn btn-sm btn-outline" id="btn-copy-def-to-atk">
+                Karşılama → Atak'a Kopyala
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-section panel-section--grow">
+            <div class="section-header">
+              <h2>Sahadaki Oyuncular</h2>
+              <span class="muted-count" id="roster-count">11</span>
+            </div>
+            <div class="roster-list" id="roster-list"></div>
+          </div>
+        </div>
+
+        <!-- Sekme 2: Takım Talimatları -->
+        <div class="left-tab-pane" id="pane-instructions" hidden>
+          <div class="panel-section" id="team-instructions-container"></div>
+        </div>
+
+        <!-- Sekme 3: Taktik Analiz & Yedek Kulübesi -->
+        <div class="left-tab-pane" id="pane-analysis" hidden>
+          <div class="panel-section">
+            <div class="section-header">
+              <h2>Asistan Taktik Analizi</h2>
+            </div>
+            <div class="analysis-list" id="analysis-list"></div>
+          </div>
+          <div class="panel-section panel-section--grow">
+            <div class="section-header">
+              <h2>Yedek Kulübesi</h2>
+              <button type="button" class="link-btn" id="btn-add-sub">+ Yedek Ekle</button>
+            </div>
+            <p class="sub-hint">Seçili saha oyuncusuyla değiştirmek için <strong>Al ⇄</strong> butonuna tıklayın.</p>
+            <div class="subs-list" id="subs-list"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Orta Alan: İnteraktif Futbol Sahası -->
+      <section class="pitch-stage">
+        <div class="pitch-toolbar">
+          <div class="pitch-phase-banner" id="pitch-phase-banner"></div>
+          <div class="pitch-toggles">
+            <label class="toggle-chip">
+              <input type="checkbox" id="toggle-transition" checked />
+              <span>Geçiş</span>
+            </label>
+            <label class="toggle-chip">
+              <input type="checkbox" id="toggle-zones" checked />
+              <span>Bölgeler</span>
+            </label>
+            <label class="toggle-chip">
+              <input type="checkbox" id="toggle-coverage" />
+              <span>Kapsama</span>
+            </label>
+            <button type="button" class="btn btn-sm btn-outline" id="btn-orientation" title="Dikey / Yatay saha görünümü">
+              Yatay Görünüm
+            </button>
+          </div>
+        </div>
+
+        <!-- İkinci Araç Çubuğu: Rakip Diziliş & Çizim Araçları -->
+        <div class="pitch-subtoolbar">
+          <div class="subtoolbar-group">
+            <label class="control-label" for="opponent-select" style="margin:0;">Rakip:</label>
+            <select id="opponent-select" class="select-input select-input--sm"></select>
+          </div>
+          <div class="subtoolbar-group">
+            <span class="control-label" style="margin:0;">Çizim:</span>
+            <button type="button" class="btn btn-sm btn-outline draw-tool-btn" data-draw-mode="pass" id="btn-draw-pass">
+              Pas Oku
+            </button>
+            <button type="button" class="btn btn-sm btn-outline draw-tool-btn" data-draw-mode="run" id="btn-draw-run">
+              Koşu Oku
+            </button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-clear-drawings" title="Çizilen okları temizle">
+              Temizle
+            </button>
+          </div>
+        </div>
+
+        <div class="pitch-container" id="pitch-container">
+          <div class="pitch-direction-top" id="pitch-dir-top">▲ RAKİP KALE (HÜCUM YÖNÜ) ▲</div>
+          <div class="pitch-board" id="pitch-board">
+            <!-- SVG Saha Çizgileri ve Geçiş Okları -->
+            <svg class="pitch-svg" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <pattern id="grass-stripes" width="100" height="20" patternUnits="userSpaceOnUse">
+                  <rect width="100" height="10" fill="#25733F" />
+                  <rect y="10" width="100" height="10" fill="#2A7D46" />
+                </pattern>
+                <marker id="arrow-atk" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="rgba(255,255,255,0.85)" />
+                </marker>
+                <marker id="arrow-pass" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38BDF8" />
+                </marker>
+                <marker id="arrow-run" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#FACC15" />
+                </marker>
+              </defs>
+              <rect x="0" y="0" width="100" height="140" fill="url(#grass-stripes)" />
+              <rect x="3" y="3" width="94" height="134" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.6" />
+              <line x1="3" y1="70" x2="97" y2="70" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <circle cx="50" cy="70" r="11" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <circle cx="50" cy="70" r="0.8" fill="rgba(255,255,255,0.85)" />
+
+              <!-- Üst Ceza Sahası -->
+              <rect x="22" y="3" width="56" height="20" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <rect x="36" y="3" width="28" height="7" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <circle cx="50" cy="15" r="0.7" fill="rgba(255,255,255,0.85)" />
+              <path d="M 39 23 A 12 12 0 0 0 61 23" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <rect x="42" y="1.2" width="16" height="1.8" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="0.6" />
+
+              <!-- Alt Ceza Sahası -->
+              <rect x="22" y="117" width="56" height="20" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <rect x="36" y="130" width="28" height="7" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <circle cx="50" cy="125" r="0.7" fill="rgba(255,255,255,0.85)" />
+              <path d="M 39 117 A 12 12 0 0 1 61 117" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.55" />
+              <rect x="42" y="137" width="16" height="1.8" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="0.6" />
+
+              <!-- Köşe Yayları -->
+              <path d="M 3 5.5 A 2.5 2.5 0 0 0 5.5 3" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.5" />
+              <path d="M 94.5 3 A 2.5 2.5 0 0 0 97 5.5" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.5" />
+              <path d="M 3 134.5 A 2.5 2.5 0 0 1 5.5 137" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.5" />
+              <path d="M 94.5 137 A 2.5 2.5 0 0 1 97 134.5" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="0.5" />
+
+              <!-- Taktik Bölge Izgarası -->
+              <g id="pitch-zones-layer" opacity="0.22">
+                <line x1="28" y1="3" x2="28" y2="137" stroke="#FFFFFF" stroke-dasharray="1.5 1.5" stroke-width="0.35" />
+                <line x1="72" y1="3" x2="72" y2="137" stroke="#FFFFFF" stroke-dasharray="1.5 1.5" stroke-width="0.35" />
+                <line x1="3" y1="32" x2="97" y2="32" stroke="#FFFFFF" stroke-dasharray="1.5 1.5" stroke-width="0.35" />
+                <line x1="3" y1="57" x2="97" y2="57" stroke="#FFFFFF" stroke-dasharray="1.5 1.5" stroke-width="0.35" />
+                <line x1="3" y1="78" x2="97" y2="78" stroke="#FFFFFF" stroke-dasharray="1.5 1.5" stroke-width="0.35" />
+                <line x1="3" y1="94" x2="97" y2="94" stroke="#FFFFFF" stroke-dasharray="1.5 1.5" stroke-width="0.35" />
+              </g>
+
+              <!-- Kapsama Halkaları -->
+              <g id="pitch-coverage-layer"></g>
+              <!-- Fazlar Arası Geçiş Okları -->
+              <g id="pitch-arrows-layer"></g>
+              <!-- Kullanıcının Çizdiği Pas / Koşu Okları -->
+              <g id="pitch-drawings-layer"></g>
+            </svg>
+
+            <div class="pitch-ghost-layer" id="pitch-ghost-layer"></div>
+            <div class="pitch-opponent-layer" id="pitch-opponent-layer"></div>
+            <div class="pitch-players-layer" id="pitch-players-layer"></div>
+          </div>
+          <div class="pitch-direction-bottom" id="pitch-dir-bottom">KENDİ KALEMİZ</div>
+        </div>
+      </section>
+
+      <!-- Sağ Panel: Oyuncu, Rol ve Görev Müfettişi -->
+      <aside class="panel panel-right" id="inspector-panel"></aside>
+    </main>
+  </div>
+
+  <!-- Rol Rehberi Modalı -->
+  <div class="modal-backdrop" id="role-guide-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-title">FM27 Rol ve Görev Rehberi</h2>
+          <p>Tüm saha içi rollerin ve Savunma / Destek / Hücum görevlerinin detaylı anlamları</p>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btn-close-modal">Kapat ✕</button>
+      </div>
+      <div class="modal-toolbar">
+        <input type="search" id="guide-search" class="text-input" placeholder="Rol veya özellik ara (ör: Mezzala, Raumdeuter, Pas...)" />
+        <div class="guide-category-tabs" id="guide-category-tabs"></div>
+      </div>
+      <div class="modal-body" id="role-guide-body"></div>
+    </div>
+  </div>
+
+  <!-- Taktik Slotları Modalı -->
+  <div class="modal-backdrop" id="slots-modal" hidden>
+    <div class="modal-card modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="slots-modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="slots-modal-title">Kayıtlı Taktik Slotları</h2>
+          <p>Farklı maç planlarınızı kaydedip aralarında tek tıkla geçiş yapın</p>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btn-close-slots">Kapat ✕</button>
+      </div>
+      <div class="slots-save-bar">
+        <input type="text" id="slot-name-input" class="text-input" placeholder="Slot adı (ör: Deplasman 5-3-2)" maxlength="36" />
+        <button type="button" class="btn btn-primary" id="btn-save-slot">Mevcut Taktiği Kaydet</button>
+      </div>
+      <div class="slots-list" id="slots-list"></div>
+    </div>
+  </div>
+
+  <!-- Toast Bildirimi -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
